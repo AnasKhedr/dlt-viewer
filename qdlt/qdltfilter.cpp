@@ -2,9 +2,9 @@
  * @licence app begin@
  * Copyright (C) 2011-2012  BMW AG
  *
- * This file is part of GENIVI Project Dlt Viewer.
+ * This file is part of COVESA Project Dlt Viewer.
  *
- * Contributions are licensed to the GENIVI Alliance under one or more
+ * Contributions are licensed to the COVESA Alliance under one or more
  * Contribution License Agreements.
  *
  * \copyright
@@ -15,13 +15,13 @@
  * \author Alexander Wenzel <alexander.aw.wenzel@bmw.de> 2011-2012
  *
  * \file qdlt.cpp
- * For further information see http://www.genivi.org/.
+ * For further information see http://www.covesa.global/.
  * @licence end@
  */
 
 #include <QtDebug>
 
-#include "qdlt.h"
+#include "qdltfilter.h"
 
 extern "C"
 {
@@ -151,8 +151,9 @@ bool QDltFilter::compileRegexps()
         ignoreCase_Header ? QRegularExpression::CaseInsensitiveOption
                           : QRegularExpression::NoPatternOption);
     payloadRegularExpression.setPatternOptions(
-        ignoreCase_Payload ? QRegularExpression::CaseInsensitiveOption
-                           : QRegularExpression::NoPatternOption);
+        QRegularExpression::DotMatchesEverythingOption |
+        (ignoreCase_Payload ? QRegularExpression::CaseInsensitiveOption
+                            : QRegularExpression::NoPatternOption));
 
     return (headerRegularExpression.isValid() &&
             payloadRegularExpression.isValid() &&
@@ -160,7 +161,7 @@ bool QDltFilter::compileRegexps()
             appidRegularExpression.isValid());
 }
 
-bool QDltFilter::match(QDltMsg &msg) const
+bool QDltFilter::match(const QDltMsg &msg) const
 {
 
     if( (true == enableEcuid) && (msg.getEcuid() != ecuid))

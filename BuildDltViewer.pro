@@ -1,8 +1,8 @@
 #
 TEMPLATE = subdirs
 CONFIG   += ordered
-SUBDIRS  += qdlt src plugin
-CONFIG += c++11
+SUBDIRS  += qdlt src plugin commander
+CONFIG += c++1z
 
 ICON = Project.icns
 QMAKE_INFO_PLIST = Info.plist

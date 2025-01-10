@@ -41,17 +41,6 @@ TEMPLATE  = lib
 # ...of type plugin
 CONFIG   += plugin
 
-# QWT
-# CONFIG  += qwt
-
-# QWT_DIR = $$(QWT_DIR)
-# !isEmpty(QWT_DIR) {
-#     QWT_INSTALL_PREFIX = $$QWT_DIR
-# } else {
-#     QWT_INSTALL_PREFIX = C:\\Qwt-6.1.3
-# }
-
-
 # Used QT features
 QT += core gui network
 
@@ -59,14 +48,15 @@ QT += core gui network
 greaterThan(QT_VER_MAJ, 4) {
     QT += widgets
     INCLUDEPATH += QtWidgets
-    DEFINES += QT5
+    win32:DEFINES += QT5_QT6_COMPAT
 }
 
 
 
 # Include path
 INCLUDEPATH += ../../src \
-            ../../qdlt
+            ../../qdlt \
+            /usr/include/qdlt
 # QWT
 # win32:INCLUDEPATH += $$QWT_INSTALL_PREFIX\\include
 

@@ -2,27 +2,20 @@
 PROJECT                 = qdlt
 TEMPLATE                = lib
 
-CONFIG += c++11
+CONFIG += c++1z
 DEFINES += QDLT_LIBRARY
 *-gcc* {
     QMAKE_CFLAGS += -std=gnu99
     QMAKE_CFLAGS += -Wall
     QMAKE_CFLAGS += -Wextra
-    #QMAKE_CFLAGS += -pedantic
 }
 
 *-g++* {
-    QMAKE_CXXFLAGS += -std=gnu++0x
+    QMAKE_CXXFLAGS += -std=c++17
     QMAKE_CXXFLAGS += -Wall
     QMAKE_CXXFLAGS += -Wextra
     QMAKE_CXXFLAGS += -DPLUGIN_INSTALLATION_PATH=\\\"$$PREFIX/usr/share/dlt-viewer/plugins\\\"
-    #QMAKE_CXXFLAGS += -pedantic
 }
-
-# Uncomment to add debug symbols to Release build
-#QMAKE_CXXFLAGS_RELEASE += -g
-#QMAKE_CFLAGS_RELEASE += -g
-#QMAKE_LFLAGS_RELEASE =
 
 unix:DEFINES += BYTE_ORDER=LITTLE_ENDIAN _TTY_POSIX_ QT_VIEWER
 win32:DEFINES += BYTE_ORDER=LITTLE_ENDIAN QT_VIEWER
@@ -37,15 +30,9 @@ INSTALLS += target
 
 CONFIG                 += warn_on qt
 QT                     += network
-QT                     += gui
 QT                     += serialport
 
-# Detect QT5 and comply to new Widgets hierarchy
-greaterThan(QT_VERSION, 4.8.4) {
-    QT += widgets
-    INCLUDEPATH += QtWidgets
-    DEFINES += QT5
-}
+win32:LIBS += User32.lib
 
 # Put intermediate files in the build directory
 MOC_DIR     = build/moc
@@ -77,9 +64,14 @@ SOURCES +=  \
     qdltoptmanager.cpp \
     qdltsegmentedmsg.cpp \
     qdltsettingsmanager.cpp \
+    qdltexporter.cpp \
+    fieldnames.cpp \
+    qdltimporter.cpp \
+    dltmessagematcher.cpp \
 
 HEADERS += qdlt.h \
     export_rules.h \
+    export_c_rules.h \
     dlt_common.h \
     dlt_user.h \
     qdltipconnection.h \
@@ -105,6 +97,10 @@ HEADERS += qdlt.h \
     qdltoptmanager.h \
     qdltsegmentedmsg.h \
     qdltsettingsmanager.h \
+    qdltexporter.h \
+    fieldnames.h \
+    qdltimporter.h \
+    dltmessagematcher.h \
 
 unix:VERSION            = 1.0.0
 

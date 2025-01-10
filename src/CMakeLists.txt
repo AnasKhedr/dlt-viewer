@@ -1,18 +1,22 @@
 # Copyright (C) 2016, Jack S. Smith
 #
-# This file is part of GENIVI DLT-Viewer project.
+# This file is part of COVESA DLT-Viewer project.
 #
 # This Source Code Form is subject to the terms of the
 # Mozilla Public License (MPL), v. 2.0.
 # If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# For further information see http://www.genivi.org/.
+# For further information see http://www.covesa.global/.
 #
 # List of changes:
 # 01.Oct.2016, Jack Smith <jack.smith@elektrobit.com>, Original Author
 
-QT5_ADD_RESOURCES(UI_RESOURCES_RCC resources/resource.qrc)
+if("${QT_PREFIX}" STREQUAL "Qt6")
+    QT6_ADD_RESOURCES(UI_RESOURCES_RCC resources/resource.qrc)
+else()
+    QT5_ADD_RESOURCES(UI_RESOURCES_RCC resources/resource.qrc)
+endif()
 
 add_executable(dlt-viewer
     main.cpp
@@ -32,8 +36,6 @@ add_executable(dlt-viewer
     dltfileutils.cpp
     dltfileindexer.cpp
     dlttableview.cpp
-    dltexporter.cpp
-    fieldnames.cpp
     dltuiutils.cpp
     workingdirectory.cpp
     jumptodialog.cpp
@@ -44,16 +46,19 @@ add_executable(dlt-viewer
     dltmsgqueue.cpp
     dltfileindexerthread.cpp
     dltfileindexerdefaultfilterthread.cpp
-    mcudpsocket.cpp
+    sortfilterproxymodel.cpp
+    searchform.h
+    searchform.cpp
     ${UI_RESOURCES_RCC}
-    resources/dlt_viewer.rc)
+    resources/dlt_viewer.rc
+    )
 
 target_link_libraries(dlt-viewer
     qdlt
-    Qt5::Core
-    Qt5::Network
-    Qt5::Widgets
-    Qt5::SerialPort)
+    ${QT_PREFIX}::Core
+    ${QT_PREFIX}::Network
+    ${QT_PREFIX}::Widgets
+    ${QT_PREFIX}::SerialPort)
 
 if(CMAKE_COMPILER_IS_GNUCXX)
     # https://stackoverflow.com/questions/45329372/ubuntu-recognizes-executable-as-shared-library-and-wont-run-it-by-clicking
@@ -63,7 +68,7 @@ endif()
 
 set_target_properties(dlt-viewer PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-    INSTALL_RPATH "$<$<BOOL:${LINUX}>:$ORIGIN/../lib;>$<$<BOOL:${APPLE}>:@loader_path/../Frameworks;>$<$<BOOL:${DLT_USE_QT_RPATH}>:${DLT_QT5_LIB_DIR}>")
+    INSTALL_RPATH "$<$<BOOL:${LINUX}>:$ORIGIN/../lib;>$<$<BOOL:${APPLE}>:@loader_path/../Frameworks;>$<$<BOOL:${DLT_USE_QT_RPATH}>:${DLT_QT_LIB_DIR}>")
 
     install(TARGETS dlt-viewer
     DESTINATION "${DLT_EXECUTABLE_INSTALLATION_PATH}"
@@ -76,18 +81,21 @@ else()
     set(DLT_ADDITIONAL_FILES_INSTALLATION_PATH ".")
 endif()
 
-install(FILES
-    ../LICENSE.txt
-    ../MPL.txt
-    ../README.md
-    ../ReleaseNotes_Viewer.txt
-    DESTINATION "${DLT_ADDITIONAL_FILES_INSTALLATION_PATH}"
-    COMPONENT dlt_viewer)
-install(FILES
-    ../doc/dlt_viewer_user_manual.pdf
-    ../doc/dlt_viewer_plugins_programming_guide.pdf
-    DESTINATION "${DLT_ADDITIONAL_FILES_INSTALLATION_PATH}/doc"
-    COMPONENT documentation)
+if(DLT_INSTALL_SDK)
+    install(FILES
+        ../LICENSE.txt
+        ../MPL.txt
+        ../README.md
+        ../ReleaseNotes_Viewer.txt
+        DESTINATION "${DLT_ADDITIONAL_FILES_INSTALLATION_PATH}"
+        COMPONENT dlt_viewer)
+    install(FILES
+        ../doc/dlt_viewer_user_manual.pdf
+        ../doc/dlt_viewer_plugins_programming_guide.pdf
+        DESTINATION "${DLT_ADDITIONAL_FILES_INSTALLATION_PATH}/doc"
+        COMPONENT documentation)
+endif()
+
 install(DIRECTORY
     ../filters
     DESTINATION "${DLT_ADDITIONAL_FILES_INSTALLATION_PATH}"

@@ -1,8 +1,11 @@
 #include "qdltplugin.h"
+#include "qdltpluginmanager.h"
 
 #include <QDir>
+#include <QDebug>
 #include <QCoreApplication>
 #include <QPluginLoader>
+#include <QMutex>
 //#include <QMessageBox>
 #include <QTextStream>
 #include <QString>
@@ -13,6 +16,12 @@
 
 QDltPluginManager::QDltPluginManager()
 {
+    pMutex_pluginList = new QMutex();
+}
+
+QDltPluginManager::~QDltPluginManager()
+{
+    delete pMutex_pluginList;
 }
 
 int QDltPluginManager::size() const
@@ -20,18 +29,6 @@ int QDltPluginManager::size() const
     return plugins.size();
 }
 
-int QDltPluginManager::sizeEnabled() const
-{
-    int count = 0;
-
-    for(int num=0;num<plugins.size();num++)
-    {
-        QDltPlugin *plugin = plugins[num];
-        if(plugin->getMode()>=QDltPlugin::ModeEnable)
-            count++;
-    }
-    return count;
-}
 QStringList QDltPluginManager::loadPlugins(const QString &settingsPluginPath)
 {
     QDir pluginsDir1;
@@ -96,7 +93,9 @@ QStringList QDltPluginManager::loadPluginsPath(QDir &dir)
                     QDltPlugin* item = new QDltPlugin();
                     item->loadPlugin(plugin);
                     item->initMessageDecoder(this);
+                    pMutex_pluginList->lock();
                     plugins.append(item);
+                    pMutex_pluginList->unlock();
 
                     //project.plugin->addTopLevelItem(item);
 
@@ -134,43 +133,159 @@ QStringList QDltPluginManager::loadPluginsPath(QDir &dir)
 
 void QDltPluginManager::loadConfig(QString pluginName,QString filename)
 {
+    pMutex_pluginList->lock();
     for(int num=0;num<plugins.size();num++)
     {
         QDltPlugin *plugin = plugins[num];
-        if(plugin->getName()==pluginName)
+        if(plugin->name()==pluginName)
             plugin->setFilename(filename);
     }
+    pMutex_pluginList->unlock();
 }
 
 
 void QDltPluginManager::decodeMsg(QDltMsg &msg, int triggeredByUser)
 {
+    pMutex_pluginList->lock();
     for(int num=0;num<plugins.size();num++)
     {
         QDltPlugin *plugin = plugins[num];
 
         if(plugin->decodeMsg(msg,triggeredByUser))
             break;
-
     }
+    pMutex_pluginList->unlock();
 }
 
 QDltPlugin* QDltPluginManager::findPlugin(QString &name)
 {
+    QDltPlugin *plugin = nullptr;
+
+    pMutex_pluginList->lock();
     for(int num=0;num<plugins.size();num++)
     {
         QDltPlugin *plugin = plugins[num];
 
-        if(plugin->getName()==name)
+        if(plugin->name()==name)
+        {
+            pMutex_pluginList->unlock();
             return plugin;
+        }
     }
-    return 0;
+
+    pMutex_pluginList->unlock();
+    return plugin;
+}
+
+void QDltPluginManager::initPluginPriority(const QStringList& desiredPrio)
+{
+    QStringList finalPrio;
+
+    if(plugins.size() > 1) {
+        int prio = 0;
+        for (int i = 0; i < desiredPrio.count(); ++i) {
+            QString pluginName(desiredPrio[i]);
+            if (setPluginPriority(pluginName, prio)) {
+                ++prio;
+            }
+        }
+    }
+}
+
+bool QDltPluginManager::decreasePluginPriority(const QString &name)
+{
+    bool result = false;
+
+    if(plugins.size() > 1)
+    {
+        pMutex_pluginList->lock();
+        for(int num=0; num < plugins.size()-1; ++num)
+        {
+            if(plugins[num]->name() == name)
+            {
+                qDebug() << "decrease prio of" << name << "from" << num << "to" << num+1;
+                plugins.move(num, num+1);
+                result = true;
+                break;
+            }
+        }
+        pMutex_pluginList->unlock();
+    }
+
+    return result;
+}
+
+bool QDltPluginManager::raisePluginPriority(const QString &name)
+{
+    bool result = false;
+
+    if(plugins.size() > 1)
+    {
+        pMutex_pluginList->lock();
+        for(int num=1; num < plugins.size(); ++num)
+        {
+            if( plugins[num]->name() == name)
+            {
+                qDebug() << "raise prio of" << name << "from" << num << "to" << num-1;
+                plugins.move(num, num-1);
+                result = true;
+                break;
+            }
+        }
+        pMutex_pluginList->unlock();
+    }
+
+    return result;
+}
+
+bool QDltPluginManager::setPluginPriority(const QString& name, int prio)
+{
+    bool result = false;
+
+    if(plugins.size() > 1) {
+        //if prio is too large, put to the end of the list
+        if(prio >= plugins.size()) {
+            prio = plugins.size() - 1;
+        }
+
+        pMutex_pluginList->lock();
+        for (int num = 0; num < plugins.size(); ++num) {
+            if (plugins[num]->name() == name) {
+                if (prio != num) {
+                    qDebug() << "Changing priority of plugin" << name << "from" << num << "to" << prio;
+                    plugins.move(num, prio);
+                }
+                result = true;
+                break;
+            }
+        }
+        pMutex_pluginList->unlock();
+    }
+
+    return result;
+}
+
+QStringList QDltPluginManager::getPluginPriorities() const
+{
+    QStringList finalPrio;
+
+    if(plugins.size() > 0) {
+        pMutex_pluginList->lock();
+        for(int num=0; num < plugins.size(); ++num)
+        {
+            finalPrio << plugins[num]->name();
+        }
+        pMutex_pluginList->unlock();
+    }
+
+    return finalPrio;
 }
 
 QList<QDltPlugin*> QDltPluginManager::getDecoderPlugins()
 {
     QList<QDltPlugin*> list;
 
+    pMutex_pluginList->lock();
     for(int num=0;num<plugins.size();num++)
     {
         QDltPlugin *plugin = plugins[num];
@@ -178,6 +293,8 @@ QList<QDltPlugin*> QDltPluginManager::getDecoderPlugins()
         if(plugin->isDecoder() && plugin->getMode()>=QDltPlugin::ModeEnable)
             list.append(plugin);
     }
+    pMutex_pluginList->unlock();
+
     return list;
 }
 
@@ -185,6 +302,7 @@ QList<QDltPlugin*> QDltPluginManager::getViewerPlugins()
 {
     QList<QDltPlugin*> list;
 
+    pMutex_pluginList->lock();
     for(int num=0;num<plugins.size();num++)
     {
         QDltPlugin *plugin = plugins[num];
@@ -192,50 +310,65 @@ QList<QDltPlugin*> QDltPluginManager::getViewerPlugins()
         if(plugin->isViewer() && plugin->getMode()>=QDltPlugin::ModeEnable)
             list.append(plugin);
     }
+    pMutex_pluginList->unlock();
+
     return list;
 }
 
 bool QDltPluginManager::stateChanged(int index, QDltConnection::QDltConnectionState connectionState,QString hostname)
 {
+    pMutex_pluginList->lock();
     for(int num=0;num<plugins.size();num++)
     {
         QDltPlugin *plugin = plugins[num];
         if(plugin->isControl() )
             plugin->stateChanged(index,connectionState,hostname);
     }
+    pMutex_pluginList->unlock();
+
     return true;
 }
 
 bool  QDltPluginManager::autoscrollStateChanged(bool enabled)
 {
+    pMutex_pluginList->lock();
     for(int num=0;num<plugins.size();num++)
     {
         QDltPlugin *plugin = plugins[num];
         if(plugin->isControl() )
             plugin->autoscrollStateChanged(enabled);
     }
+    pMutex_pluginList->unlock();
+
     return true;
 }
 
 
 bool QDltPluginManager::initControl(QDltControl *control)
 {
+    pMutex_pluginList->lock();
     for(int num=0;num<plugins.size();num++)
     {
         QDltPlugin *plugin = plugins[num];
         if(plugin->isControl() )
             plugin->initControl(control);
     }
+    pMutex_pluginList->unlock();
+
     return true;
 }
 
 bool QDltPluginManager::initConnections(QStringList list)
 {
+    pMutex_pluginList->lock();
     for(int num=0;num<plugins.size();num++)
     {
         QDltPlugin *plugin = plugins[num];
         if(plugin->isControl() )
             plugin->initConnections(list);
     }
+    pMutex_pluginList->unlock();
+
     return true;
 }
+

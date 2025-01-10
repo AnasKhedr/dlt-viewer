@@ -2,9 +2,9 @@
  * @licence app begin@
  * Copyright (C) 2011-2012  BMW AG
  *
- * This file is part of GENIVI Project Dlt Viewer.
+ * This file is part of COVESA Project Dlt Viewer.
  *
- * Contributions are licensed to the GENIVI Alliance under one or more
+ * Contributions are licensed to the COVESA Alliance under one or more
  * Contribution License Agreements.
  *
  * \copyright
@@ -13,7 +13,7 @@
  * this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * \file mainwindow.h
- * For further information see http://www.genivi.org/.
+ * For further information see http://www.covesa.global/.
  * @licence end@
  */
 
@@ -28,12 +28,8 @@
 #include <QColor>
 #include <QComboBox>
 #include <QProgressBar>
-#include <QCompleter>
-#include <QStringListModel>
 
-#include "qdlt.h"
 #include "tablemodel.h"
-#include "project.h"
 #include "settingsdialog.h"
 #include "searchdialog.h"
 #include "filterdialog.h"
@@ -41,15 +37,9 @@
 #include "workingdirectory.h"
 #include "exporterdialog.h"
 #include "searchtablemodel.h"
+#include "sortfilterproxymodel.h"
 #include "ui_mainwindow.h"
-
-
-/**
- * When ecu items buffer size exceeds this while using
- * serial connection, it will be considered corrupted.
- **/
-
-#define DLT_BUFFER_CORRUPT_TRESHOLD 4* 1024
+#include "searchform.h"
 
 /**
  * @brief Namespace to contain the toolbar positions.
@@ -116,7 +106,6 @@ public:
 
 private:
     Ui::MainWindow *ui;
-    QCompleter *newCompleter;
     /* Timer for connecting to ECUs */
     QTimer timer;
 
@@ -149,6 +138,7 @@ private:
     SearchDialog *searchDlg;
     QShortcut *m_shortcut_searchnext;
     QShortcut *m_shortcut_searchprev;
+    SearchForm* searchInput;
 
     /* Export */
     ExporterDialog exporterDialog;
@@ -156,8 +146,6 @@ private:
     /* Settings dialog containing also the settings parameter itself */
     SettingsDialog *settingsDlg;
     QDltSettingsManager *settings;
-    QLineEdit *searchTextbox;
-    QComboBox *searchComboBox;
 
     /* injections */
     QString injectionAplicationId;
@@ -178,7 +166,7 @@ private:
     QStringList autoloadPluginsVersionStrings;
 
     /* String List Containing Search History */
-    enum { MaxSearchHistory = 20 };
+    enum { MaxSearchHistory = 50 };
     QAction *searchHistoryActs[MaxSearchHistory];
     QStringList searchHistory;
 
@@ -202,7 +190,6 @@ private:
     enum { MaxRecentHostnames = 10 };
     QStringList recentHostnames;
     enum { MaxRecentPorts = 10 };
-    QStringList recentSerialPorts;
     QStringList recentIPPorts;
     QStringList recentUDPPorts;
     QString recentEthIF;
@@ -213,8 +200,6 @@ private:
     quint16 senderPort; // in readdatagramm
 
     /* used in ::read() */
-    QByteArray bufferHeader;
-    QByteArray bufferPayload;
     QByteArray data;
     QDltMsg qmsg;
 
@@ -237,6 +222,9 @@ private:
 
     QList<unsigned long int> selectedMarkerRows;
 
+    /**/
+    SortFilterProxyModel *sortProxyModel;
+
     /* functions called in constructor */
     void initState();
     void initView();
@@ -258,8 +246,8 @@ private:
 
     void reloadLogFileDefaultFilter();
 
-    void exportSelection(bool ascii,bool file,bool payload_only);
-    void exportSelection_searchTable(bool payload_only);
+    void exportSelection(bool ascii,bool file,QDltExporter::DltExportFormat format);
+    void exportSelection_searchTable(QDltExporter::DltExportFormat format);
 
     void ControlServiceRequest(EcuItem* ecuitem, int service_id );
     void SendInjection(EcuItem* ecuitem);
@@ -274,7 +262,7 @@ private:
     void controlMessage_SetTimingPackets(EcuItem* ecuitem, bool enable);
     void controlMessage_GetSoftwareVersion(EcuItem* ecuitem);
     void controlMessage_GetLogInfo(EcuItem* ecuitem);
-    void controlMessage_ReceiveControlMessage(EcuItem *ecuitem,QDltMsg &msg);
+    void controlMessage_ReceiveControlMessage(EcuItem *ecuitem, const QDltMsg &msg);
     void controlMessage_SetContext(EcuItem *ecuitem, QString apid, QString ctid,QString ctdescription,int log_level,int trace_status);
     void controlMessage_SetApplication(EcuItem *ecuitem, QString apid, QString appdescription);
     void controlMessage_Marker();
@@ -287,8 +275,8 @@ private:
     void updatePluginsECUList();
     void updatePlugins();
     void updatePlugin(PluginItem *item);
-    void contextLoadingFile(QDltMsg &msg);
-    void versionString(QDltMsg &msg);
+    void contextLoadingFile(const QDltMsg &msg);
+    void versionString(const QDltMsg &msg);
     void pluginsAutoload(QString version);
 
     void connectECU(EcuItem *ecuitem,bool force = false);
@@ -298,7 +286,7 @@ private:
     void updateIndex();
     void drawUpdatedView();
 
-     void syncCheckBoxesAndMenu();
+    void syncCheckBoxesAndMenu();
 
     void updateRecentFileActions();
     void setCurrentFile(const QString &fileName);
@@ -315,7 +303,6 @@ private:
 
     void setCurrentHostname(const QString &hostName);
     void setCurrentMCAddress(const QString &mcastaddress);
-    void setCurrentSerialPort(const QString &portName);
     void setCurrentIPPort(const QString &portName);
     void setCurrentUDPPort(const QString &portName);
     void setCurrentEthIF(const QString &EthIfName);
@@ -329,6 +316,8 @@ private:
     bool openDltFile(QStringList fileName);
     bool openDlpFile(QString filename);
     bool openDlfFile(QString filename, bool replace);
+
+    void appendDltFile(const QString &fileName);
 
     void commandLineConvertToASCII();
     void commandLineConvertToDLT();
@@ -374,18 +363,23 @@ private:
     /* default filters */
     void resetDefaultFilter();
 
-    QStringListModel m_CompleterModel;
+    /* Get path from explorerView model index */
+    QString getPathFromExplorerViewIndexModel(const QModelIndex &proxyIndex);
+
+    void writeDLTMessageToFile(QByteArray &bufferHeader,char*bufferPayload,quint32 bufferPayloadSize,EcuItem* ecuitem,quint32 sec=0,quint32 use=0);
 
 protected:
-    void keyPressEvent ( QKeyEvent * event );
-    void dragEnterEvent(QDragEnterEvent *event);
-    void dropEvent(QDropEvent *event);
-    void closeEvent(QCloseEvent *event);
+    void keyPressEvent ( QKeyEvent * event ) override;
+    void dragEnterEvent(QDragEnterEvent *event) override;
+    void dropEvent(QDropEvent *event) override;
+    void closeEvent(QCloseEvent *event) override;
 
 private slots:
     void reloadLogFileProgressMax(int num);
     void reloadLogFileProgress(int num);
     void reloadLogFileProgressText(QString text);
+    void progress(QString,int status,int progress);
+    void clipboard(QString);
     void reloadLogFileVersionString(QString ecuId, QString version);
     void reloadLogFileFinishIndex();
     void reloadLogFileFinishFilter();
@@ -400,6 +394,7 @@ private slots:
     void on_pluginWidget_customContextMenuRequested(QPoint pos);
     void on_filterWidget_customContextMenuRequested(QPoint pos);
     void on_configWidget_customContextMenuRequested(QPoint pos);
+    void on_exploreView_customContextMenuRequested(QPoint pos);
 
     void on_configWidget_itemSelectionChanged();
     void on_pluginWidget_itemSelectionChanged();
@@ -409,6 +404,8 @@ private slots:
 
     void on_pluginWidget_itemExpanded(QTreeWidgetItem* item);
 
+    void onPluginWidgetPluginPriorityChanged(const QString name, int prio);
+
 // File methods
 
 private slots:
@@ -416,11 +413,14 @@ private slots:
     void on_action_menuFile_New_triggered();
     void on_action_menuFile_SaveAs_triggered();
     void on_action_menuFile_Import_DLT_Stream_with_Serial_Header_triggered();
-    void on_action_menuFile_Append_DLT_File_triggered();
     void on_action_menuFile_Import_DLT_Stream_triggered();
     void on_action_menuFile_Settings_triggered();
     void on_action_menuFile_Open_triggered();
+    void on_actionAppend_triggered();
     void on_actionExport_triggered();
+
+    void on_pushButtonMovePluginUp_clicked();
+    void on_pushButtonMovePluginDown_clicked();
 
 public slots:
 
@@ -433,7 +433,8 @@ public slots:
     void on_actionFindNext();
     void mark_unmark_lines();
     void unmark_all_lines();
-
+    void filterIndexStart();
+    void filterIndexEnd();
 
 private slots:
 
@@ -470,9 +471,14 @@ private slots:
     void on_action_menuConfig_Delete_All_Contexts_triggered();
     void onActionAenuConfigCopyPayloadToClipboardTriggered();
     void on_action_menuConfig_Copy_to_clipboard_triggered();
+    void onActionMenuConfigCopyJiraToClipboardTriggered();
+    void onActionMenuConfigCopyJiraHeadToClipboardTriggered();
     void onActionMenuConfigSearchTableCopyToClipboardTriggered();
     void onActionMenuConfigSearchTableCopyPayloadToClipboardTriggered();
-    void on_action_menuConfig_Save_All_ECUs_triggered();
+    void onActionMenuConfigSearchTableCopyJiraToClipboardTriggered();
+    void onActionMenuConfigSearchTableCopyJiraHeadToClipboardTriggered();
+
+    void onActionMenuConfigSaveAllECUsTriggered();
 
     // DLT methods
     void on_action_menuDLT_Send_Injection_triggered();
@@ -539,8 +545,6 @@ private slots:
     void on_applyConfig_clicked();
     void on_tabWidget_currentChanged(int index);
 
-    void on_comboBoxFilterSelection_activated(const QString &arg1);
-
     void on_actionDefault_Filter_Reload_triggered();
 
     void on_actionDefault_Filter_Create_Index_triggered();
@@ -558,6 +562,20 @@ private slots:
     void on_actionToggle_SortByTimeEnabled_triggered(bool checked);
     void on_actionSort_By_Timestamp_triggered(bool checked);
 
+    void on_exploreView_activated(const QModelIndex &index);
+
+    void on_comboBoxExplorerSortType_currentIndexChanged(int index);
+
+    void on_comboBoxExplorerSortOrder_currentIndexChanged(int index);
+
+    void on_checkBoxFilterRange_stateChanged(int arg1);
+
+    void on_lineEditFilterStart_textChanged(const QString &arg1);
+
+    void on_lineEditFilterEnd_textChanged(const QString &arg1);
+
+    void on_comboBoxFilterSelection_currentTextChanged(const QString &arg1);
+
 public slots:
 
     void sendInjection(int index,QString applicationId,QString contextId,int serviceId,QByteArray data);
@@ -567,6 +585,8 @@ public slots:
     void markerSignal();
     void connectEcuSignal(int index);
     void disconnectEcuSignal(int index);
+    void connectAllEcuSignal();
+    void disconnectAllEcuSignal();
     void reopenFileSignal();
 
     void controlMessage_Timezone(int timezone, unsigned char dst);
@@ -575,6 +595,9 @@ public slots:
     //History Slots
     void onAddActionToHistory();
     void onSearchProgressChanged(bool isInProgress);
+
+    void handleImportResults(const QString &);
+    void handleExportResults(const QString &);
 
 public:
 
@@ -590,12 +613,12 @@ public:
     QDltDefaultFilter defaultFilter;
 
     QStringList openFileNames;
-    QStringList list;
 
     /* store startLoggingDateTime when logging first data */
     QDateTime startLoggingDateTime;
 
-
+signals:
+    void dltFileLoaded(const QStringList& paths);
 };
 
 #endif // MAINWINDOW_H

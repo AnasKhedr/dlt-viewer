@@ -8,7 +8,10 @@
 #include <QPair>
 #include <QMutex>
 
-#include "qdlt.h"
+#include "qdltdefaultfilter.h"
+#include "qdltfile.h"
+#include "qdltplugin.h"
+#include "qdltpluginmanager.h"
 
 #define DLT_FILE_INDEXER_SEG_SIZE (1024*1024)
 #define DLT_FILE_INDEXER_FILE_VERSION 2
@@ -63,7 +66,7 @@ public:
     // destructor
     ~DltFileIndexer();
 
-    typedef enum { modeNone, modeIndexAndFilter, modeFilter, modeDefaultFilter } IndexingMode;
+    typedef enum { modeNone, modeIndex, modeIndexAndFilter, modeFilter, modeDefaultFilter } IndexingMode;
 
     // create main index
     bool index(int num);
@@ -125,7 +128,7 @@ public:
     // get index of all messages
     QVector<qint64> getIndexAll() { return indexAllList; }
     QVector<qint64> getIndexFilters() { return indexFilterList; }
-    QList<int> getGetLogInfoList() { return getLogInfoList; }
+    const QList<int>& getGetLogInfoList() { return getLogInfoList; }
 
     // let worker thread append to getLogInfoList
     void appendToGetLogInfoList(int value);
@@ -135,6 +138,15 @@ public:
 
     // main thread routine
     void run();
+
+    bool getFilterIndexEnabled() const;
+    void setFilterIndexEnabled(bool newFilterIndexEnabled);
+
+    qint64 getFilterIndexStart() const;
+    void setFilterIndexStart(qint64 newFilterIndexStart);
+
+    qint64 getFilterIndexEnd() const;
+    void setFilterIndexEnd(qint64 newFilterIndexEnd);
 
 protected:
 
@@ -193,6 +205,11 @@ private:
     int msecsIndexCounter;
     int msecsFilterCounter;
     int msecsDefaultFilterCounter;
+
+    // filter index only in a specific range
+    bool filterIndexEnabled;
+    qint64 filterIndexStart;
+    qint64 filterIndexEnd;
 
 signals:
 

@@ -2,9 +2,9 @@
  * @licence app begin@
  * Copyright (C) 2011-2012  BMW AG
  *
- * This file is part of GENIVI Project Dlt Viewer.
+ * This file is part of COVESA Project Dlt Viewer.
  *
- * Contributions are licensed to the GENIVI Alliance under one or more
+ * Contributions are licensed to the COVESA Alliance under one or more
  * Contribution License Agreements.
  *
  * \copyright
@@ -15,13 +15,13 @@
  * \author Alexander Wenzel <alexander.aw.wenzel@bmw.de> 2011-2012
  *
  * \file qdlt.cpp
- * For further information see http://www.genivi.org/.
+ * For further information see http://www.covesa.global/.
  * @licence end@
  */
 
 #include <QtDebug>
 
-#include "qdlt.h"
+#include "qdltconnection.h"
 
 extern "C"
 {
@@ -75,12 +75,13 @@ void QDltConnection::add(const QByteArray &bytes)
 {
     bytesReceived += bytes.size();
 
-    data = dataView + bytes;
+    QByteArray dataViewArray = dataView;
+    data = dataViewArray + bytes;
 
     dataView.align(data);
 }
 
-bool QDltConnection::parseDlt(QDltMsg &msg)
+bool QDltConnection::parseDlt(QDltMsg &msg , bool supportDLTv2)
 {
     /* if sync to serial header search for header */
     int found = 0;
@@ -149,7 +150,7 @@ bool QDltConnection::parseDlt(QDltMsg &msg)
     {
         /* two sync headers found */
         /* try to read msg */
-        if(!msg.setMsg(dataView.mid(firstPos,secondPos-firstPos-4),false))
+        if(!msg.setMsg(dataView.mid(firstPos,secondPos-firstPos-4),false,supportDLTv2))
         {
             /* no valid msg found, perhaps to short */
             dataView.advance(secondPos-4);
@@ -174,7 +175,7 @@ bool QDltConnection::parseDlt(QDltMsg &msg)
         bytesError += firstPos-4;
 
     /* try to read msg */
-    if(!msg.setMsg(dataView.mid(firstPos),false))
+    if(!msg.setMsg(dataView.mid(firstPos),false,supportDLTv2))
     {
         /* no complete msg found */
         /* perhaps not completely received */
@@ -226,7 +227,7 @@ bool QDltConnection::parseAscii(QDltMsg &msg)
                 // add one argument as String
                 QDltArgument arg;
                 arg.setTypeInfo(QDltArgument::DltTypeInfoStrg);
-                arg.setEndianness(QDltArgument::DltEndiannessLittleEndian);
+                arg.setEndianness(QDlt::DltEndiannessLittleEndian);
                 arg.setOffsetPayload(0);
                 arg.setData(QByteArray(cbuf,num)+QByteArray("",1));
                 msg.addArgument(arg);

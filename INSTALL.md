@@ -4,8 +4,8 @@ Alexander Wenzel <Alexander.AW.Wenzel@bmw.de>
 
 ## Instructions for installing DLT Viewer (GUI)
 
-* Install Qt5 SDK including Qt Creator and Microsoft Visual Studio Build Tools 2017
-* Tested with QT 5.12.12 (Windows) and Qt 5.9.5 (Ubuntu Linux)
+* Install Qt5 SDK and Qt6 SDK including Qt Creator and Microsoft Visual Studio Build Tools 2019
+* Tested with QT 5.15.2 (Windows), QT 6.7.3 (Windows), and Qt 5.15.13 (Ubuntu 24.04LTS Linux)
 * Open project BuildDltViewer.pro in Qt Creator.
 * Ensure that build options point to correct QT and MSVC.
 * Build Release in Qt Creator or via CMake (see last).
@@ -15,7 +15,7 @@ Alexander Wenzel <Alexander.AW.Wenzel@bmw.de>
 
 * sudo apt install build-essential
 * sudo apt install qtcreator
-* sudo apt install qt5-default
+* sudo apt install qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools
 * sudo apt install libqt5serialport5-dev
 * mkdir build
 * cd build
@@ -25,24 +25,18 @@ Alexander Wenzel <Alexander.AW.Wenzel@bmw.de>
 * sudo ldconfig
 * Optional: set the library path: LD_LIBRARY_PATH = .
 
+## Instructions for installing DLT Viewer (macOS)
+
+* Download and install DLTViewer from the Mac AppStore
+* https://apps.apple.com/us/app/dlt-viewer/id6648796931?mt=12
+
 ## Build DLT Viewer in Windows
 
-* Install Qt5 SDK and Microsoft Visual Studio Build Tools 2017
-* If needed adapt you configuration in build_sdk_windows_qt5_MSVC.bat
-* Run build_sdk_windows_qt5_MSVC.bat
+* Install Qt5 SDK or Qt6 SDK and Microsoft Visual Studio Build Tools 2019
+* If needed adapt you configuration in build_config.bat
+* Run build_sdk_windows_qt5_MSVC_interactive.bat
 
 The DLT Viewer will be installed by default in C:\DltViewerSDK
-
-## Optional: Prepare Installation Qwt (Windows)
-
-Some DLT Viewer plugins will use the Qwt library for displaying graphs.
-The Qwt library must be compiled and installed before it can be used.
-
-(Tested with Qwt 6.2.0)
-
-* Install Qt5 SDK and Microsoft Visual Studio Build Tools 2017
-* Copy Qwt zip package qwt-6.2.0.zip to DLT Viewer folder
-* Run build_qwt_windows_qt5_MSVC.bat
 
 ## Create SDK (Linux)
 
@@ -113,17 +107,21 @@ Various solutions exist for cmake configuration to be informed about
 non-standard installation paths for required components.  See CMake
 documentation for details. (hint: QTDIR)
 
-For MacOS, you can install Qt with Homebrew:
-brew install qt
+For macOS, you can install Qt with Homebrew:
+brew install qt@5
 
 Then give the Qt directory to CMake and build:
+#### x86:
 * Qt5_DIR="/usr/local/opt/qt" cmake src_path/
+* make
+#### arm64:
+* Qt5_DIR="/opt/homebrew/opt/qt5" cmake src_path/
 * make
 
 The application is built in "bin/DLT Viewer.app", it can be launched from Finder or the command line:
 open -a $DLT_BUILD_DIR/bin/DLT\ Viewer.app
 
-## Building DLT Viewer release version with Qmake on MacOs
+## Building DLT Viewer release version with Qmake on macOS
 
 Sometimes building with Cmake or in Qt Creator leads to Plugins not working in  DLT Viewer.
 Building with qmake in release version gets rid of this problem.

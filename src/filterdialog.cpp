@@ -2,9 +2,9 @@
  * @licence app begin@
  * Copyright (C) 2011-2012  BMW AG
  *
- * This file is part of GENIVI Project Dlt Viewer.
+ * This file is part of COVESA Project Dlt Viewer.
  *
- * Contributions are licensed to the GENIVI Alliance under one or more
+ * Contributions are licensed to the COVESA Alliance under one or more
  * Contribution License Agreements.
  *
  * \copyright
@@ -13,7 +13,7 @@
  * this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * \file filterdialog.cpp
- * For further information see http://www.genivi.org/.
+ * For further information see http://www.covesa.global/.
  * @licence end@
  */
 
@@ -21,6 +21,8 @@
 #include "ui_filterdialog.h"
 #include <QMessageBox>
 #include <QCloseEvent>
+#include <QRegularExpression>
+
 #include "dltuiutils.h"
 
 FilterDialog::FilterDialog(QWidget *parent) :
@@ -47,7 +49,6 @@ FilterDialog::FilterDialog(QWidget *parent) :
     ui->pushButton_c8->setStyleSheet ("QPushButton {background-color: rgb(150, 255, 150);} QPushButton:disabled {background-color: rgb(255, 255, 255);}");
     ui->pushButton_c9->setStyleSheet ("QPushButton {background-color: rgb(150, 150 ,255);} QPushButton:disabled {background-color: rgb(255, 255, 255);}");
     ui->pushButton_c10->setStyleSheet("QPushButton {background-color: rgb(255, 150 ,255);} QPushButton:disabled {background-color: rgb(255, 255, 255);}");
-    ui->comboBoxType->setVisible(false);
 
     ui->lineEdit_msgIdMax->setInputMask("nnhhhhhhhh");
     ui->lineEdit_msgIdMin->setInputMask("nnhhhhhhhh");
@@ -68,15 +69,23 @@ FilterDialog::~FilterDialog()
 
 void FilterDialog::setType(int value)
 {
-    ui->comboBoxType->setCurrentIndex(value);
+    ui->pushButton_Positive->setChecked(value==0);
+    ui->pushButton_Negative->setChecked(value==1);
+    ui->pushButton_Marker->setChecked(value==2);
 
-    /* update ui */
-    on_checkBoxMarkerClicked();
+    ui->groupBox_marker->setEnabled(value!=1);
+    ui->groupBox_marker->setCheckable(value==0);
+    ui->groupBox_marker->setChecked(value==2);
 }
 
 int FilterDialog::getType()
 {
-    return ui->comboBoxType->currentIndex();
+    if( ui->pushButton_Positive->isChecked())
+        return 0;
+    else if(ui->pushButton_Negative->isChecked())
+        return 1;
+    else
+        return 2;
 }
 
 void FilterDialog::setName(QString name)
@@ -286,7 +295,7 @@ void FilterDialog::setFilterColour(QColor color)
    QPalette palette = ui->labelSelectedColor->palette();
    palette.setColor(QPalette::Active,this->backgroundRole(),color);
    palette.setColor(QPalette::Inactive,this->backgroundRole(),QColor(255,255,255,255));
-   palette.setColor(QPalette::Foreground,DltUiUtils::optimalTextColor(color));
+   palette.setColor(QPalette::WindowText,DltUiUtils::optimalTextColor(color));
    ui->labelSelectedColor->setPalette(palette);
 
 }
@@ -406,7 +415,7 @@ void FilterDialog::on_comboBoxType_currentIndexChanged(int index){
 
 void FilterDialog::on_checkBoxMarkerClicked()
 {
-    int index = ui->comboBoxType->currentIndex();
+/*    int index = ui->comboBoxType->currentIndex();
     switch (index)
         {
             case 0: ui->pushButton_Positive->setChecked(true);break;
@@ -414,7 +423,7 @@ void FilterDialog::on_checkBoxMarkerClicked()
             case 2: ui->pushButton_Marker->setChecked(true);break;
         }
     on_buttonGroup_filterType_buttonClicked( -1 );
-
+*/
 }
 
 void FilterDialog::on_lineEditApplicationId_textEdited(const QString &)
@@ -497,7 +506,7 @@ void FilterDialog::validate()
         return;
     }
 
-    QRegExp rx;
+    QRegularExpression rx;
     rx.setPattern(getPayloadText());
     if(!rx.isValid()) {
         QMessageBox::warning(this, "Warning", error.arg("PAYLOAD").arg(rx.pattern()).arg(rx.errorString()));
@@ -532,42 +541,32 @@ void FilterDialog::on_pushButton_c8_clicked() { setFilterColour(((QPushButton *)
 void FilterDialog::on_pushButton_c9_clicked() { setFilterColour(((QPushButton *)sender())->palette().window().color());}
 void FilterDialog::on_pushButton_c10_clicked(){ setFilterColour(((QPushButton *)sender())->palette().window().color());}
 
+void FilterDialog::on_pushButton_Positive_clicked()
+{
+    ui->groupBox_marker->setEnabled(true);
+    ui->groupBox_marker->setCheckable(true);
+    ui->groupBox_marker->setChecked(false);
+}
+
+
+void FilterDialog::on_pushButton_Negative_clicked()
+{
+    ui->groupBox_marker->setEnabled(false);
+    ui->groupBox_marker->setCheckable(false);
+    ui->groupBox_marker->setChecked(false);
+}
+
+
+void FilterDialog::on_pushButton_Marker_clicked()
+{
+    ui->groupBox_marker->setEnabled(true);
+    ui->groupBox_marker->setCheckable(false);
+    ui->groupBox_marker->setChecked(true);
+}
+
 void FilterDialog::on_buttonGroup_filterType_buttonClicked( int id )
 {
     Q_UNUSED(id)
-    int i = -1;
-    if (ui->pushButton_Marker->isChecked())
-      {
-       ui->groupBox_marker->setEnabled(true);
-       i = ui->comboBoxType->findText("marker");
-       if (i != -1)
-           ui->comboBoxType->setCurrentIndex(i);
-       ui->groupBox_marker->setChecked(true);
-       ui->groupBox_marker->setCheckable(false);
-      }
-    else
-    {
-        ui->groupBox_marker->setCheckable(true);
-    }
-    if ( ui->pushButton_Negative->isChecked())
-      {
-        ui->groupBox_marker->setEnabled(false);
-        i = ui->comboBoxType->findText("negative");
-        if (i != -1)
-            ui->comboBoxType->setCurrentIndex(i);
-        ui->groupBox_marker->setChecked(false);
-        ui->groupBox_marker->setCheckable(false);
-
-      }
-    if (ui->pushButton_Positive->isChecked())
-      {
-        ui->groupBox_marker->setEnabled(true);
-        i = ui->comboBoxType->findText("positive");
-        if (i != -1)
-            ui->comboBoxType->setCurrentIndex(i);
-        ui->groupBox_marker->setCheckable(true);
-        ui->groupBox_marker->setChecked(false);
-      }
 }
 
 
@@ -656,3 +655,5 @@ void FilterDialog::on_checkboxMessageId_stateChanged(int)
     {
         checkMsgIdValid("");
     }
+
+

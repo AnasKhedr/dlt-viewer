@@ -2,9 +2,9 @@
  * @licence app begin@
  * Copyright (C) 2011-2012  BMW AG
  *
- * This file is part of GENIVI Project Dlt Viewer.
+ * This file is part of COVESA Project Dlt Viewer.
  *
- * Contributions are licensed to the GENIVI Alliance under one or more
+ * Contributions are licensed to the COVESA Alliance under one or more
  * Contribution License Agreements.
  *
  * \copyright
@@ -13,7 +13,7 @@
  * this file, You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * \file treemodel.h
- * For further information see http://www.genivi.org/.
+ * For further information see http://www.covesa.global/.
  * @licence end@
  */
 
@@ -27,14 +27,12 @@
 #include <QStyledItemDelegate>
 
 #include "project.h"
-#include "qdlt.h"
+#include "qdltpluginmanager.h"
+#include <qdltlrucache.hpp>
 
-#define DLT_VIEWER_LIST_BUFFER_SIZE 100024
+#include <optional>
+
 #define DLT_VIEWER_COLUMN_COUNT FieldNames::Arg0
-
-extern "C"
-{
-}
 
 class TableModel : public QAbstractTableModel
 {
@@ -66,12 +64,16 @@ private:
     bool emptyForceFlag;
     bool loggingOnlyMode;
 
+    // cache is used in data()-method to avoid decoding of the same message multiple times
+    // key is a message index in the qdltfile; message can fail to decode, in that case value is empty optional
+    mutable QDltLruCache<int, std::optional<QDltMsg>> m_cache{1};
+
     long int searchhit;
     QColor searchBackgroundColor() const;
     QColor searchhit_higlightColor;
     QColor manualMarkerColor;
     QList<unsigned long int> selectedMarkerRows;
-    QColor getMsgBackgroundColor(QDltMsg &msg,int index,long int filterposindex) const;
+    QColor getMsgBackgroundColor(const std::optional<QDltMsg>& msg, int index, long int filterposindex) const;
 };
 
 class HtmlDelegate : public QStyledItemDelegate

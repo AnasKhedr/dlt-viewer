@@ -4,15 +4,16 @@ QT_VERSION = $$split(QT_VERSION, ".")
 QT_VER_MAJ = $$member(QT_VERSION, 0)
 QT_VER_MIN = $$member(QT_VERSION, 1)
 
+CONFIG += c++1z
 *-gcc* {
-    QMAKE_CFLAGS += -std=gnu99
+    QMAKE_CFLAGS += -std=c11
     QMAKE_CFLAGS += -Wall
     QMAKE_CFLAGS += -Wextra
-    #QMAKE_CFLAGS += -pedantic
+    #QMAKE_CXXFLAGS += -pedantic
 }
 
 *-g++* {
-    QMAKE_CXXFLAGS += -std=gnu++0x
+    QMAKE_CXXFLAGS += -std=c++17
     QMAKE_CXXFLAGS += -Wall
     QMAKE_CXXFLAGS += -Wextra
     #QMAKE_CXXFLAGS += -pedantic
@@ -39,14 +40,14 @@ win32:DEFINES += BYTE_ORDER=LITTLE_ENDIAN QT_VIEWER
 INCLUDEPATH = . ../qdlt
 
 # Icon for application (The smiley face)
-icons.files = icon/org.genivi.DLTViewer.ico
-icons_16x16.files = icon/16x16/org.genivi.DLTViewer.png
-icons_22x22.files = icon/22x22/org.genivi.DLTViewer.png
-icons_24x24.files = icon/24x24/org.genivi.DLTViewer.png
-icons_32x32.files = icon/32x32/org.genivi.DLTViewer.png
-icons_48x48.files = icon/48x48/org.genivi.DLTViewer.png
-icons_256x256.files = icon/256x256/org.genivi.DLTViewer.png
-icons_symbolic.files = icon/symbolic/org.genivi.DLTViewer-symbolic.svg
+icons.files = resources/icon/org.genivi.DLTViewer.ico
+icons_16x16.files = resources/icon/16x16/org.genivi.DLTViewer.png
+icons_22x22.files = resources/icon/22x22/org.genivi.DLTViewer.png
+icons_24x24.files = resources/icon/24x24/org.genivi.DLTViewer.png
+icons_32x32.files = resources/icon/32x32/org.genivi.DLTViewer.png
+icons_48x48.files = resources/icon/48x48/org.genivi.DLTViewer.png
+icons_256x256.files = resources/icon/256x256/org.genivi.DLTViewer.png
+icons_symbolic.files = resources/icon/symbolic/org.genivi.DLTViewer-symbolic.svg
 
 icons.path = $$PREFIX/usr/share/pixmaps
 icons_16x16.path = $$PREFIX/usr/share/icons/hicolor/16x16/apps
@@ -62,7 +63,7 @@ INSTALLS += icons icons_16x16 icons_22x22 icons_24x24 icons_32x32 icons_48x48 ic
 # desktop file to show the application in start menu on Linux
 # This should work on both KDE and Gnome
 desktop.path = $$PREFIX/usr/share/applications
-desktop.files = org.genivi.DLTViewer.desktop
+desktop.files = resources/org.genivi.DLTViewer.desktop
 INSTALLS += desktop
 
 # Unix header exports
@@ -100,10 +101,10 @@ win32-g++ {
 QT += core gui network serialport
 
 # Detect QT5 and comply to new Widgets hierarchy
-greaterThan(QT_VER_MAJ, 4) {
+greaterThan(QT_VERSION, 4.8.4) {
     QT += widgets
     INCLUDEPATH += QtWidgets
-    DEFINES += QT5
+    win32:DEFINES += QT5_QT6_COMPAT
 }
 
 # Put intermediate files in the build directory
@@ -130,14 +131,14 @@ SOURCES += main.cpp \
     settingsdialog.cpp \
     injectiondialog.cpp \
     searchdialog.cpp \
+    searchform.cpp \
     multiplecontextdialog.cpp \
+    sortfilterproxymodel.cpp \
     tablemodel.cpp \
     filtertreewidget.cpp \
     dltfileutils.cpp \
     dltfileindexer.cpp \
     dlttableview.cpp \
-    dltexporter.cpp \
-    fieldnames.cpp \
     dltuiutils.cpp \
     workingdirectory.cpp \
     jumptodialog.cpp\
@@ -148,7 +149,6 @@ SOURCES += main.cpp \
     dltmsgqueue.cpp \
     dltfileindexerthread.cpp \
     dltfileindexerdefaultfilterthread.cpp \
-    mcudpsocket.cpp \
 
 # Show these headers in the project
 HEADERS += mainwindow.h \
@@ -161,6 +161,8 @@ HEADERS += mainwindow.h \
     settingsdialog.h \
     injectiondialog.h \
     searchdialog.h \
+    searchform.h \
+    sortfilterproxymodel.h \
     version.h \
     multiplecontextdialog.h \
     tablemodel.h \
@@ -168,8 +170,6 @@ HEADERS += mainwindow.h \
     dltfileutils.h \
     dltfileindexer.h \
     dlttableview.h \
-    dltexporter.h \
-    fieldnames.h \
     workingdirectory.h \
     dltuiutils.h \
     jumptodialog.h \
@@ -180,8 +180,7 @@ HEADERS += mainwindow.h \
     dltmsgqueue.h \
     dltfileindexerthread.h \
     dltfileindexerdefaultfilterthread.h \
-    mcudpsocket.h \
-    regex_search_replace.h
+    mcudpsocket.h
 
 # Compile these UI files
 FORMS += mainwindow.ui \
@@ -190,6 +189,7 @@ FORMS += mainwindow.ui \
     contextdialog.ui \
     filterdialog.ui \
     plugindialog.ui \
+    searchform.ui \
     settingsdialog.ui \
     injectiondialog.ui \
     searchdialog.ui \
@@ -215,4 +215,7 @@ RESOURCES += resources/resource.qrc
 RC_FILE = resources/dlt_viewer.rc
 
 DISTFILES += \
-    ../build_qwt_windows_qt5_MSVC.bat
+    ../build_config.bat \
+    ../build_sdk_windows_qt5_MSVC_cmake.bat \
+    ../build_sdk_windows_qt5_MSVC_cmake_interactive.bat \
+    ../build_sdk_windows_qt5_MSVC_interactive.bat
